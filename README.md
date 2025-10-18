@@ -196,8 +196,8 @@ docker pull ghcr.io/egmen/backup-utility:latest
 # Конкретная версия
 docker pull ghcr.io/egmen/backup-utility:v1.0.0
 
-# Версия из ветки release
-docker pull ghcr.io/egmen/backup-utility:release
+# По хешу коммита
+docker pull ghcr.io/egmen/backup-utility:d7e9e06
 ```
 
 Образы доступны для платформ:

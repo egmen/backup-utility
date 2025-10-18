@@ -29,7 +29,7 @@ Workflow автоматически создает следующие теги:
 
 | Событие          | Примеры тегов                           |
 | ---------------- | --------------------------------------- |
-| Push в `main`    | `main`, `latest`, `sha-d7e9e06`         |
+| Push в `main`    | `main`, `latest`, `d7e9e06`             |
 | Tag `v1.2.3`     | `v1.2.3`, `1.2.3`, `1.2`, `1`, `latest` |
 | Pull Request #42 | `pr-42` (только сборка)                 |
 
@@ -44,8 +44,8 @@ docker pull ghcr.io/egmen/backup-utility:latest
 # Конкретная версия
 docker pull ghcr.io/egmen/backup-utility:v1.0.0
 
-# Версия по SHA коммита
-docker pull ghcr.io/egmen/backup-utility:sha-d7e9e06
+# Версия по хешу коммита
+docker pull ghcr.io/egmen/backup-utility:d7e9e06
 ```
 
 ## Настройка

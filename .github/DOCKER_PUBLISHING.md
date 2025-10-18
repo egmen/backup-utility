@@ -68,8 +68,8 @@ docker pull ghcr.io/egmen/backup-utility:latest
 # Скачать конкретную версию
 docker pull ghcr.io/egmen/backup-utility:v1.0.0
 
-# Скачать по SHA коммита
-docker pull ghcr.io/egmen/backup-utility:sha-d7e9e06
+# Скачать по хешу коммита
+docker pull ghcr.io/egmen/backup-utility:d7e9e06
 
 # Запустить
 docker run ghcr.io/egmen/backup-utility:latest
