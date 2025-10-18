@@ -185,7 +185,27 @@ Zero-config уведомления:
 
 ## Docker
 
-### Сборка образа
+### Использование готового образа
+
+Образы автоматически публикуются в GitHub Container Registry через CI/CD:
+
+```bash
+# Последняя стабильная версия
+docker pull ghcr.io/egmen/backup-utility:latest
+
+# Конкретная версия
+docker pull ghcr.io/egmen/backup-utility:v1.0.0
+
+# Версия из ветки release
+docker pull ghcr.io/egmen/backup-utility:release
+```
+
+Образы доступны для платформ:
+
+- `linux/amd64` (x86_64)
+- `linux/arm64` (ARM64, включая Apple Silicon)
+
+### Сборка образа локально
 
 Для сборки Docker образа выполните команду из корневой директории проекта:
 
@@ -406,11 +426,3 @@ pkg/
 
 - **Local Plugin** - локальная файловая система
 - **S3 Plugin** - AWS S3, Yandex Cloud, MinIO и другие S3-совместимые сервисы
-
-## Для разработки
-
-set SOURCE_DIR $(pwd)/example/source
-set TARGET_STORAGE $(pwd)/example/target
-go run main.go
-
-SOURCE_DIR=(pwd)/example/source TARGET_STORAGE=(pwd)/example/target go run main.go
