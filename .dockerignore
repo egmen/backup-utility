@@ -1,0 +1,60 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# GitHub
+.github
+
+# Documentation
+README.md
+*.md
+docs/
+
+# Examples and test data
+example/
+
+# Environment files
+.env
+.env.*
+*.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build artifacts
+backup
+*.exe
+*.test
+*.out
+dist/
+build/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Docker
+Dockerfile*
+.dockerignore
+docker-compose*.yml
+
+# CI/CD (не нужны в образе)
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+
+# OS specific
+Thumbs.db
+.DS_Store
+
