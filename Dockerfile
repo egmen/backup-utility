@@ -1,4 +1,4 @@
-FROM golang:1.21-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
 WORKDIR /app
 COPY . .
@@ -6,6 +6,10 @@ RUN go mod tidy
 RUN CGO_ENABLED=0 GOOS=linux go build -o backup .
 
 FROM alpine:latest
+
+# Устанавливаем утилиты для бэкапа баз данных
+RUN apk add --no-cache mysql-client
+
 WORKDIR /app
 COPY --from=builder /app/backup .
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/

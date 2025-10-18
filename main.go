@@ -6,9 +6,14 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/robfig/cron/v3"
+
+	"github.com/egmen/backup-utility/pkg/source"
+	"github.com/egmen/backup-utility/pkg/storage"
 )
 
 // Config содержит параметры бэкапа
@@ -87,13 +92,20 @@ func runBackup(config Config) error {
 	log.Printf("Starting backup process")
 
 	// Создаем менеджеры для источников и хранилища
-	sourceManager := NewSourceManager(config.SourceDir, config.SourceDB)
-	storageManager := NewStorageManager(
+	sourceManager, err := source.NewManager(config.SourceDir, config.SourceDB)
+	if err != nil {
+		return fmt.Errorf("failed to create source manager: %v", err)
+	}
+
+	storageManager, err := storage.NewManager(
 		config.TargetStorage,
 		config.BackupPrefix,
 		config.BackupRetention,
 		config.MinRetained,
 	)
+	if err != nil {
+		return fmt.Errorf("failed to create storage manager: %v", err)
+	}
 
 	// Проверяем доступность источников
 	if err := sourceManager.ValidateSource(); err != nil {
@@ -105,15 +117,62 @@ func runBackup(config Config) error {
 		return fmt.Errorf("failed to create backup directory: %v", err)
 	}
 
-	// Генерируем путь для нового бэкапа
-	backupPath := storageManager.GenerateBackupPath()
-	log.Printf("Creating backup at: %s", backupPath)
+	// Генерируем базовый ключ для нового бэкапа
+	baseBackupKey := storageManager.GenerateBackupPath()
+	log.Printf("Creating backup with base key: %s", baseBackupKey)
 
-	// Создаем бэкап из источников
-	if err := sourceManager.CreateBackup(backupPath); err != nil {
-		return fmt.Errorf("failed to create backup: %v", err)
+	// Для S3 создаем временные локальные файлы, для локального хранилища используем путь напрямую
+	var isS3 = strings.HasPrefix(config.TargetStorage, "s3://")
+
+	if isS3 {
+		// Создаем временные файлы для S3
+		baseTemp := "/tmp/" + filepath.Base(baseBackupKey)
+		createdFiles, err := sourceManager.CreateBackups(baseTemp)
+		if err != nil {
+			// Очищаем созданные файлы при ошибке
+			for _, f := range createdFiles {
+				os.Remove(f)
+			}
+			return fmt.Errorf("failed to create backups: %v", err)
+		}
+
+		// Получаем префикс пути из baseBackupKey (если есть)
+		baseDir := filepath.Dir(baseBackupKey)
+		if baseDir == "." {
+			baseDir = ""
+		}
+
+		// Загружаем все файлы в S3 и удаляем временные файлы
+		for _, tempFile := range createdFiles {
+			// Вычисляем целевой ключ в S3, сохраняя структуру пути
+			filename := filepath.Base(tempFile)
+			var s3Key string
+			if baseDir != "" {
+				s3Key = baseDir + "/" + filename
+			} else {
+				s3Key = filename
+			}
+
+			if err := storageManager.UploadBackup(tempFile, s3Key); err != nil {
+				// Очищаем все временные файлы при ошибке
+				for _, f := range createdFiles {
+					os.Remove(f)
+				}
+				return fmt.Errorf("failed to upload backup to S3: %v", err)
+			}
+			os.Remove(tempFile) // очищаем временный файл после успешной загрузки
+			log.Printf("Backup uploaded successfully: %s", s3Key)
+		}
+	} else {
+		// Для локального хранилища создаем архивы напрямую в нужное место
+		createdFiles, err := sourceManager.CreateBackups(baseBackupKey)
+		if err != nil {
+			return fmt.Errorf("failed to create backups: %v", err)
+		}
+		for _, file := range createdFiles {
+			log.Printf("Backup created successfully: %s", file)
+		}
 	}
-	log.Printf("Backup created successfully: %s", backupPath)
 
 	// Применяем политику ротации
 	if err := storageManager.ApplyRetentionPolicy(); err != nil {
