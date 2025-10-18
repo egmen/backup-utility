@@ -153,6 +153,105 @@ Zero-config уведомления:
 [LEVEL] timestamp message
 ```
 
+## Docker
+
+### Сборка образа
+
+Для сборки Docker образа выполните команду из корневой директории проекта:
+
+```bash
+docker build -t backup-utility .
+```
+
+### Запуск с .env файлом
+
+Создайте `.env` файл с необходимыми переменными окружения:
+
+```bash
+# .env
+SOURCE_DIR=/data/source
+TARGET_STORAGE=/data/backups
+BACKUP_RETENTION=7d
+BACKUP_MIN_RETAINED=3
+BACKUP_PREFIX=backup
+RUN_SCHEDULE=0 4 * * *
+RUN_ON_STARTUP=true
+RUN_LOG_LEVEL=info
+# RUN_NOTIFY_WEBHOOK=https://example.com/alert?msg={message}
+```
+
+Запустите контейнер с .env файлом:
+
+```bash
+docker run -d \
+  --name backup-service \
+  --env-file .env \
+  -v ./example/source:/data/source \
+  -v ./example/backups:/data/backups \
+  backup-utility
+```
+
+### Запуск разового бэкапа
+
+Для выполнения разового бэкапа без расписания:
+
+```bash
+docker run --rm \
+  --env-file .env \
+  -e RUN_SCHEDULE="" \
+  -v ./example/source:/data/source \
+  -v ./example/backups:/data/backups \
+  backup-utility
+```
+
+### Остановка контейнера
+
+Для остановки работающего контейнера с cron:
+
+```bash
+docker stop backup-service
+```
+
+Для удаления остановленного контейнера:
+
+```bash
+docker rm backup-service
+```
+
+### Запуск с автоматическим удалением
+
+Если нужно, чтобы контейнер автоматически удалялся после остановки:
+
+```bash
+docker run -d \
+  --name backup-service \
+  --rm \
+  --env-file .env \
+  -v ./source:/data/source \
+  -v ./backups:/data/backups \
+  backup-utility
+```
+
+### Запуск с ограничением по времени
+
+Для запуска контейнера на определенное время (например, на 1 час):
+
+```bash
+timeout 3600 docker run --rm \
+  --env-file .env \
+  -v ./source:/data/source \
+  -v ./backups:/data/backups \
+  backup-utility
+```
+
+### Проверка логов
+
+Для просмотра логов работающего контейнера:
+
+```bash
+docker logs backup-service -f
+```
+
 ## Для разработки
 
 set SOURCE_DIR $(pwd)/example/source

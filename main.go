@@ -1,19 +1,12 @@
 package main
 
 import (
-	"archive/tar"
-	"compress/gzip"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
-	"sort"
 	"strconv"
-	"strings"
-	"time"
 
 	"github.com/robfig/cron/v3"
 )
@@ -90,118 +83,40 @@ func getEnvAsBool(key string, defaultValue bool) bool {
 	return defaultValue
 }
 
-func createArchive(archivePath string, sourceDir string) error {
-	file, err := os.Create(archivePath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	gzipWriter := gzip.NewWriter(file)
-	defer gzipWriter.Close()
-
-	tarWriter := tar.NewWriter(gzipWriter)
-	defer tarWriter.Close()
-
-	return filepath.Walk(sourceDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if info.IsDir() {
-			return nil
-		}
-
-		file, err := os.Open(path)
-		if err != nil {
-			return err
-		}
-		defer file.Close()
-
-		header, err := tar.FileInfoHeader(info, info.Name())
-		if err != nil {
-			return err
-		}
-
-		relPath, err := filepath.Rel(sourceDir, path)
-		if err != nil {
-			return err
-		}
-		header.Name = relPath
-
-		if err := tarWriter.WriteHeader(header); err != nil {
-			return err
-		}
-
-		if _, err := io.Copy(tarWriter, file); err != nil {
-			return err
-		}
-
-		return nil
-	})
-}
-
-func applyRetentionPolicy(config Config) error {
-	files, err := os.ReadDir(config.TargetStorage)
-	if err != nil {
-		return err
-	}
-
-	var backups []os.DirEntry
-	for _, file := range files {
-		if !file.IsDir() && strings.HasPrefix(file.Name(), config.BackupPrefix) {
-			backups = append(backups, file)
-		}
-	}
-
-	sort.Slice(backups, func(i, j int) bool {
-		infoI, _ := backups[i].Info()
-		infoJ, _ := backups[j].Info()
-		return infoI.ModTime().After(infoJ.ModTime())
-	})
-
-	if len(backups) > config.MinRetained {
-		for i := config.MinRetained; i < len(backups); i++ {
-			filePath := filepath.Join(config.TargetStorage, backups[i].Name())
-			if err := os.Remove(filePath); err != nil {
-				log.Printf("Failed to remove old backup: %v", err)
-			} else {
-				log.Printf("Removed old backup: %s", filePath)
-			}
-		}
-	}
-
-	return nil
-}
-
 func runBackup(config Config) error {
 	log.Printf("Starting backup process")
 
-	if config.SourceDir != "" {
-		if _, err := os.Stat(config.SourceDir); os.IsNotExist(err) {
-			return fmt.Errorf("source directory does not exist: %s", config.SourceDir)
-		}
+	// Создаем менеджеры для источников и хранилища
+	sourceManager := NewSourceManager(config.SourceDir, config.SourceDB)
+	storageManager := NewStorageManager(
+		config.TargetStorage,
+		config.BackupPrefix,
+		config.BackupRetention,
+		config.MinRetained,
+	)
+
+	// Проверяем доступность источников
+	if err := sourceManager.ValidateSource(); err != nil {
+		return fmt.Errorf("source validation failed: %v", err)
 	}
 
-	if err := os.MkdirAll(config.TargetStorage, 0755); err != nil {
+	// Убеждаемся что директория хранилища существует
+	if err := storageManager.EnsureStorageExists(); err != nil {
 		return fmt.Errorf("failed to create backup directory: %v", err)
 	}
 
-	backupPath := fmt.Sprintf("%s/%s-%s.tar.gz",
-		config.TargetStorage,
-		config.BackupPrefix,
-		time.Now().UTC().Format(time.RFC3339))
-
+	// Генерируем путь для нового бэкапа
+	backupPath := storageManager.GenerateBackupPath()
 	log.Printf("Creating backup at: %s", backupPath)
 
-	if config.SourceDir != "" {
-		if err := createArchive(backupPath, config.SourceDir); err != nil {
-			return fmt.Errorf("failed to create archive: %v", err)
-		}
-		log.Printf("Backup created successfully: %s", backupPath)
+	// Создаем бэкап из источников
+	if err := sourceManager.CreateBackup(backupPath); err != nil {
+		return fmt.Errorf("failed to create backup: %v", err)
 	}
+	log.Printf("Backup created successfully: %s", backupPath)
 
-	if err := applyRetentionPolicy(config); err != nil {
+	// Применяем политику ротации
+	if err := storageManager.ApplyRetentionPolicy(); err != nil {
 		return fmt.Errorf("failed to apply retention policy: %v", err)
 	}
 
