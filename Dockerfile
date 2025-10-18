@@ -1,8 +1,13 @@
 FROM golang:1.23-alpine AS builder
 
 WORKDIR /app
+
+# Копируем файлы зависимостей и кэшируем слой с модулями
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Копируем исходный код и собираем
 COPY . .
-RUN go mod tidy
 RUN CGO_ENABLED=0 GOOS=linux go build -o backup .
 
 FROM alpine:latest
