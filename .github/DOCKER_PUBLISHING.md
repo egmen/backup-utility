@@ -13,15 +13,15 @@
 
 ### Вариант 1: Автоматическая публикация при push
 
-Просто запушьте код в ветку `main` или `release`:
+Просто запушьте код в ветку `main`:
 
 ```bash
 git add .
 git commit -m "Ваши изменения"
-git push origin release
+git push origin main
 ```
 
-Образ автоматически соберется и опубликуется с тегом `release`.
+Образ автоматически соберется и опубликуется с тегами `main` и `latest`.
 
 ### Вариант 2: Релиз с версией
 
@@ -45,7 +45,7 @@ git push origin v1.0.0
 
 ### Вариант 3: Проверка перед публикацией (Pull Request)
 
-Создайте Pull Request в `main` или `release`:
+Создайте Pull Request в `main`:
 
 ```bash
 git checkout -b feature/my-feature
@@ -67,6 +67,9 @@ docker pull ghcr.io/egmen/backup-utility:latest
 
 # Скачать конкретную версию
 docker pull ghcr.io/egmen/backup-utility:v1.0.0
+
+# Скачать по SHA коммита
+docker pull ghcr.io/egmen/backup-utility:sha-d7e9e06
 
 # Запустить
 docker run ghcr.io/egmen/backup-utility:latest
@@ -155,7 +158,7 @@ GitHub имеет лимиты на сборки. Подождите или оп
 
 ## 📋 Checklist первого запуска
 
-- [ ] Запушить код в `release` или `main`
+- [ ] Запушить код в `main` или создать тег версии
 - [ ] Открыть Actions и проверить, что workflow запустился
 - [ ] Дождаться завершения сборки (5-10 минут)
 - [ ] Проверить, что образ появился в Packages

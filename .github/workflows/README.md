@@ -10,9 +10,9 @@
 
 Workflow запускается при:
 
-- **Push в ветки**: `main`, `release`
+- **Push в ветку**: `main`
 - **Push тегов**: любые теги начинающиеся с `v` (например, `v1.0.0`, `v2.1.3`)
-- **Pull Request**: в ветки `main` и `release` (только сборка, без публикации)
+- **Pull Request**: в ветку `main` (только сборка, без публикации)
 
 ### Что делает workflow
 
@@ -29,8 +29,7 @@ Workflow автоматически создает следующие теги:
 
 | Событие          | Примеры тегов                           |
 | ---------------- | --------------------------------------- |
-| Push в `main`    | `main`, `latest`, `main-<sha>`          |
-| Push в `release` | `release`, `release-<sha>`              |
+| Push в `main`    | `main`, `latest`, `sha-d7e9e06`         |
 | Tag `v1.2.3`     | `v1.2.3`, `1.2.3`, `1.2`, `1`, `latest` |
 | Pull Request #42 | `pr-42` (только сборка)                 |
 
@@ -45,8 +44,8 @@ docker pull ghcr.io/egmen/backup-utility:latest
 # Конкретная версия
 docker pull ghcr.io/egmen/backup-utility:v1.0.0
 
-# Версия из ветки release
-docker pull ghcr.io/egmen/backup-utility:release
+# Версия по SHA коммита
+docker pull ghcr.io/egmen/backup-utility:sha-d7e9e06
 ```
 
 ## Настройка
@@ -164,7 +163,7 @@ gh attestation verify oci://ghcr.io/egmen/backup-utility:latest \
 
 1. Проверьте логи workflow в разделе Actions
 2. Убедитесь, что это не Pull Request (PR только собирают, но не публикуют)
-3. Проверьте, что push был в ветки `main` или `release`
+3. Проверьте, что push был в ветку `main` или создан тег
 
 ### Проблемы с мультиплатформенной сборкой
 
